@@ -8,8 +8,6 @@ services:
       POSTGRES_PASSWORD: 'gTGSUD8Q89NWGReP29jw'
       POSTGRES_USER: 'app_prod'
       POSTGRES_DB: 'app'
-    volumes:
-      - './dev/db/initdb:/docker-entrypoint-initdb.d'
   api:
     hostname: 'matching-system'
     ports:
