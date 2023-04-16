@@ -13,7 +13,7 @@ services:
   api:
     hostname: 'matching-system'
     ports:
-      - '8080:8080'
+      - '8083:8080'
     environment:
       MOISI_MATCHING_SYSTEM_DATABASE_URL: 'postgresql://db:5432?user=app_prod&password=gTGSUD8Q89NWGReP29jw'
     build: '../app'
