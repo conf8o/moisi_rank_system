@@ -1,0 +1,23 @@
+{
+  "parties": [
+    {
+      "players": [
+        {"id": "string", "name": "string", "point": 0},
+        {"id": "string", "name": "string", "point": 0},
+        {"id": "string", "name": "string", "point": 0}
+      ]
+    },
+    {
+      "players": [
+        {"id": "string", "name": "string", "point": 0},
+        {"id": "string", "name": "string", "point": 0}
+      ]
+    },
+    {
+      "players": [
+        {"id": "string", "name": "string", "point": 0},
+        {"id": "string", "name": "string", "point": 0}
+      ]
+    }
+  ]
+}
