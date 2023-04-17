@@ -3,4 +3,3 @@ uvicorn
 psycopg2
 sqlalchemy
 alembic
-pytest
