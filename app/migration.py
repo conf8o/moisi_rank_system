@@ -5,7 +5,7 @@ import os
 
 # 設定ファイルの初期化
 ini_template = open("./migration/alembic.ini_temp.txt").read()
-with open("alembic.ini", "w") as f:
+with open("./migration/alembic.ini", "w") as f:
     f.write(ini_template.format(DATABASE_URL))
 
 # 引数
