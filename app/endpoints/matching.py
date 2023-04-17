@@ -1,5 +1,5 @@
 from typing import Optional, List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from database import get_db
 from use_case import matching
@@ -83,7 +83,7 @@ def index():
     return "matching"
 
 
-@router.post("/entries", response_model=Entry)
+@router.post("/entries", response_model=Entry, status_code=status.HTTP_201_CREATED)
 def create_entry(req: Entry, db: Session = Depends(get_db)) -> Entry:
     entry: domain.EntryEntity = matching.create_entry(db, req.to_model())
     return EntryEntity.from_model(entry)
@@ -94,7 +94,8 @@ def query_entry(is_closed: bool = False, has_players: bool = True, db: Session =
     entries = matching.query_entry(db, domain.EntryQuery(is_closed=is_closed, has_players=has_players))
     return [EntryEntity.from_model(e) for e in entries]
 
-@router.put("/entries/{id}")
+
+@router.put("/entries/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def update_entry(id: str, entry: EntryEntity, db: Session = Depends(get_db)) -> None:
     e = entry.to_model()
     e.id = UUID(id)
@@ -106,19 +107,19 @@ def query_matching(db: Session = Depends(get_db)):
     return ""
 
 
-@router.post("/match_making", response_model=MatchMakingResponse)
+@router.post("/match_making", response_model=MatchMakingResponse, status_code=status.HTTP_201_CREATED)
 def make_match(db: Session = Depends(get_db)):
     m: domain.Match = matching.make_match(db)
     return MatchMakingResponse.from_model(m.parties)
 
 
-@router.post("/match_making_with_new_entries", response_model=MatchMakingResponse)
+@router.post("/match_making_with_new_entries", response_model=MatchMakingResponse, status_code=status.HTTP_201_CREATED)
 def make_match_with_new_entries(req: MatchMakingRequest, db: Session = Depends(get_db)):
     m: domain.Match = matching.make_match_with_new_entries(db, req.to_model())
     return MatchMakingResponse.from_model(m.parties)
 
 
-@router.post("/match_making_proto", response_model=MatchMakingResponse)
+@router.post("/match_making_proto", response_model=MatchMakingResponse, status_code=status.HTTP_200_OK)
 def make_match_proto(req: MatchMakingRequest, db: Session = Depends(get_db)) -> MatchMakingResponse:
     m: domain.Match = matching.make_match_with_new_entries(db, req.to_model())
     return MatchMakingResponse.from_model(m.parties)
