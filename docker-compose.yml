@@ -10,21 +10,25 @@ services:
       POSTGRES_DB: 'app'
     volumes:
       - './dev/db/initdb:/docker-entrypoint-initdb.d'
-  # web:
-  #   image: 'nginx:latest'
-  #   depends_on:
-  #     - 'api'
-  #   ports:
-  #     - '443:443'
-  #   volumes:
-  #     - ./dev/web/nginx-log:/var/log/nginx
-  #     - ./dev/web/nginx/ssl:/etc/nginx/ssl
-  #     - ./dev/web/html:/var/www/html
-  #     - ./dev/web/nginx/conf.d:/etc/nginx/conf.d
   api:
-    hostname: 'matching-system'
+    build: '.'
+    depends_on:
+      - db
     ports:
       - '8080:8080'
-    build: '.'
+    volumes:
+      - ./app:/app/app
     environment:
       MOISI_MATCHING_SYSTEM_DATABASE_URL: 'postgresql://db:5432?user=app&password=password'
+  web:
+    image: 'nginx:latest'
+    depends_on:
+      - 'api'
+    ports:
+      - '8000:80'
+      - '443:443'
+    volumes:
+      - ./dev/web/nginx-log:/var/log/nginx
+      - ./dev/web/nginx/ssl:/etc/nginx/ssl
+      - ./dev/web/html:/var/www/html
+      - ./dev/web/nginx/conf.d:/etc/nginx/conf.d
