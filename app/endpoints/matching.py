@@ -7,6 +7,8 @@ from domain import matching as domain
 from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
+from typing import List
+
 
 router = APIRouter()
 
@@ -25,7 +27,7 @@ class Player(BaseModel):
 
 
 class Entry(BaseModel):
-    players: list[Player]
+    players: List[Player]
 
     def to_model(self) -> domain.Entry:
         return domain.Entry([p.to_model() for p in self.players])
@@ -37,7 +39,7 @@ class Entry(BaseModel):
 
 class EntryEntity(BaseModel):
     id: Optional[str]
-    players: list[Player]
+    players: List[Player]
     closed_at: Optional[datetime]
 
     def to_model(self) -> domain.EntryEntity:
@@ -49,7 +51,7 @@ class EntryEntity(BaseModel):
 
 
 class Party(BaseModel):
-    players: list[Player]
+    players: List[Player]
 
     @staticmethod
     def from_model(party: domain.Party) -> 'Party':
@@ -61,21 +63,31 @@ class EntryQueryRequest(BaseModel):
     has_players: bool = True
 
     def to_model(self) -> domain.EntryQuery:
+
         return domain.EntryQuery(is_closed=self.is_closed, has_players=self.has_players)
 
 class MatchMakingRequest(BaseModel):
-    entries: list[Entry]
+    entries: List[Entry]
 
-    def to_model(self) -> list[domain.Entry]:
+    def to_model(self) -> List[domain.Entry]:
         return [e.to_model() for e in self.entries]
 
 
-class MatchMakingResponse(BaseModel):
-    parties: list[Party]
+class Match(BaseModel):
+    id: str
+    parties: List[Party]
 
     @staticmethod
-    def from_model(parties: list[domain.Party]) -> 'MatchMakingResponse':
-        return MatchMakingResponse(parties=[Party.from_model(p) for p in parties])
+    def from_model(match: domain.Match) -> 'Match':
+        return Match(id=str(match.id), parties=[Party.from_model(p) for p in match.parties])
+
+
+class MatchMakingResponse(BaseModel):
+    matches: List[Match]
+
+    @staticmethod
+    def from_model(matches: List[domain.Match]) -> 'MatchMakingResponse':
+        return MatchMakingResponse(matches=[Match.from_model(m) for m in matches])
 
 
 @router.get("/")
@@ -90,7 +102,7 @@ def create_entry(req: Entry, db: Session = Depends(get_db)) -> Entry:
 
 
 @router.get("/entries")
-def query_entry(is_closed: bool = False, has_players: bool = True, db: Session = Depends(get_db)) -> list[Entry]:
+def query_entry(is_closed: bool = False, has_players: bool = True, db: Session = Depends(get_db)) -> List[Entry]:
     entries = matching.query_entry(db, domain.EntryQuery(is_closed=is_closed, has_players=has_players))
     return [EntryEntity.from_model(e) for e in entries]
 
@@ -102,24 +114,36 @@ def update_entry(id: str, entry: EntryEntity, db: Session = Depends(get_db)) -> 
     matching.update_entry(db, e)
     return 
 
-@router.get("/matching")
-def query_matching(db: Session = Depends(get_db)):
-    return ""
+
+@router.get("/matches")
+def query_matching(db: Session = Depends(get_db)) -> List[Match]:
+    return [Match.from_model(m) for m in matching.query_match(db)]
+
+
+@router.get("/matches/{id}", response_model=Match)
+def fetch_matching(id: str, db: Session = Depends(get_db)) -> Match:
+    return Match.from_model(matching.fetch_match(db, id))
 
 
 @router.post("/match_making", response_model=MatchMakingResponse, status_code=status.HTTP_201_CREATED)
 def make_match(db: Session = Depends(get_db)):
     m: domain.Match = matching.make_match(db)
-    return MatchMakingResponse.from_model(m.parties)
+    return MatchMakingResponse.from_model(m)
+
+
+@router.post("/match_committing", response_model=Match)
+def commit_match(match_id: str, db: Session = Depends(get_db)) -> Match:
+    m: domain.Match = matching.commit_match(db, match_id)
+    return Match.from_model(m)
 
 
 @router.post("/match_making_with_new_entries", response_model=MatchMakingResponse, status_code=status.HTTP_201_CREATED)
 def make_match_with_new_entries(req: MatchMakingRequest, db: Session = Depends(get_db)):
     m: domain.Match = matching.make_match_with_new_entries(db, req.to_model())
-    return MatchMakingResponse.from_model(m.parties)
+    return MatchMakingResponse.from_model(m)
 
 
 @router.post("/match_making_proto", response_model=MatchMakingResponse, status_code=status.HTTP_200_OK)
 def make_match_proto(req: MatchMakingRequest, db: Session = Depends(get_db)) -> MatchMakingResponse:
     m: domain.Match = matching.make_match_with_new_entries(db, req.to_model())
-    return MatchMakingResponse.from_model(m.parties)
+    return MatchMakingResponse.from_model(m)

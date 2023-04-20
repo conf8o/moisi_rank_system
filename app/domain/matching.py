@@ -3,9 +3,11 @@ from numbers import Number
 from collections import deque
 from abc import ABC
 import heapq
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID, uuid4
 from datetime import datetime
+
+from config import ENTRY_LENGTH
 
 @dataclass
 class Player:
@@ -33,7 +35,7 @@ class Entry:
 
     MAX_LEN = 3
 
-    def __init__(self, players: list[Player]) -> None:
+    def __init__(self, players: List[Player]) -> None:
         if len(players) > Entry.MAX_LEN:
             raise EntryMaxLexError()
 
@@ -55,12 +57,8 @@ class Entry:
     def inner_rate(self) -> int:
         return sum(p.inner_rate for p in self.players) / len(self.players)
 
-    def sort_key(self) -> tuple[int]:
+    def sort_key(self) -> List[int]:
         return [self.inner_rate, *sorted(p.inner_rate for p in self.players)]
-    
-    @staticmethod
-    def as_value(players: list[Player]) -> 'Entry':
-        return Entry(players)
 
     def __repr__(self) -> str:
         return f"Entry(players={self.players})"
@@ -68,13 +66,13 @@ class Entry:
 @dataclass
 class EntryEntity:
     id: UUID
-    players: list[Player]
+    players: List[Player]
     closed_at: datetime
 
     def to_value(self) -> Entry:
         return Entry(self.players)
 
-def _median(entries: list[Entry]) -> Number:
+def _median(entries: List[Entry]) -> Number:
     """
     [1, 2, 3, 4] -> 2.5
     [1, 2, 3] -> 2
@@ -106,7 +104,7 @@ class DuoMatching:
     def make_trio(duo: Entry, solo: Entry) -> Entry:
         return Entry([duo.players[0], duo.players[1], solo.players[0]])
 
-    def __init__(self, entries: list[Entry], median: Number) -> None:
+    def __init__(self, entries: List[Entry], median: Number) -> None:
         self.entries = sorted(entries, key=Entry.sort_key)
         self.median = median
         self.solos = deque(filter(Entry.is_solo, self.entries))
@@ -114,7 +112,7 @@ class DuoMatching:
         self.duos_for_heap = [DuoMatching.Priority(e, self.median) for e in self.duos]
         heapq.heapify(self.duos_for_heap)
 
-    def make_match(self) -> list[Entry]:
+    def make_match(self) -> List[Entry]:
         matchings = []
         while self.duos_for_heap:
             duo = heapq.heappop(self.duos_for_heap).entry
@@ -138,12 +136,12 @@ class DuoMatching:
     
 
 class SoloMatching:
-    def __init__(self, entries: list[Entry], median: Number) -> None:
+    def __init__(self, entries: List[Entry], median: Number) -> None:
         self.entries = list(sorted(entries, key=Entry.sort_key))
         self.median = median
         self.players = [entry.players[0] for entry in self.entries]
 
-    def make_match(self) -> list[Entry]:
+    def make_match(self) -> List[Entry]:
         l = len(self.players)
         if l < 3:
             return self.entries
@@ -156,7 +154,7 @@ class SoloMatching:
         mids = [Entry([s]) for s in self.players[split_l:-split_l]]
         mid_strongers = []
         while len(mids) - split_l > 0:
-            mid_strongers.append(mids.pop())
+            mid_strongers.append(mids.pop().players[0])
 
         duo_matching = DuoMatching(pairs + mids, self.median)
         matchings = duo_matching.make_match()
@@ -170,14 +168,14 @@ class SoloMatching:
 
 
 class Matching:
-    def __init__(self, entries: list[Entry]) -> None:
+    def __init__(self, entries: List[Entry]) -> None:
         self.entries = sorted(entries, key=Entry.sort_key)
         self.median = _median(self.entries)
         self.solos = list(filter(Entry.is_solo, self.entries))
         self.duos = list(filter(Entry.is_duo, self.entries))
         self.trios = list(filter(Entry.is_trio, self.entries))
 
-    def make_match(self) -> list[Entry]:
+    def make_match(self) -> List[Entry]:
         duo_matching = DuoMatching(self.solos + self.duos, self.median)
         duo_matching_results = duo_matching.make_match()
 
@@ -203,7 +201,7 @@ class Party:
 
     MAX_LEN = 3
 
-    def __init__(self, id: UUID, players: list[Player]) -> None:
+    def __init__(self, id: UUID, players: List[Player]) -> None:
         if len(players) > Party.MAX_LEN:
             raise PartyMaxLenError()
         
@@ -215,15 +213,32 @@ class Party:
         return sum(player.inner_rate for player in self.players) / Party.MAX_LEN
 
 
+def split_entries(entries: List[EntryEntity]) -> List[List[EntryEntity]]:
+    entries = list(sorted(entries,key=lambda e: Entry(e.players).inner_rate))
+    splitted_entries = [entries[i:i+ENTRY_LENGTH] for i in range(0, len(entries), ENTRY_LENGTH)]
+    return splitted_entries
+
+
 @dataclass
 class Match:
     id: UUID 
-    parties: list[Party]
+    parties: List[Party]
+    created_at: Optional[datetime] = None
+    committed_at: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
+
 
 @dataclass
-class EntryQuery():
-    is_closed: Optional[bool]
-    has_players: Optional[bool]
+class EntryQuery:
+    is_closed: Optional[bool] = False
+    has_players: Optional[bool] = True
+    ids: Optional[List[UUID]] = None
+
+
+@dataclass
+class MatchEntryLink:
+    match_id: UUID
+    entry_ids: List[UUID]
 
 
 class AEntryRepository(ABC):
@@ -233,10 +248,21 @@ class AEntryRepository(ABC):
     def find_by_id(self, id: UUID) -> EntryEntity:
         ...
 
-    def find_by_query(self, query: EntryQuery) -> list[EntryEntity]:
+    def find_by_query(self, query: EntryQuery) -> List[EntryEntity]:
         ...
     
     def save(self, payload: EntryEntity) -> EntryEntity:
+        ...
+
+
+class AMatchEntryLinkRepository(ABC):
+    def __init__(self, store) -> None:
+        self.store = store
+
+    def find_by_match_id(self, match_id: UUID) -> MatchEntryLink:
+        ...
+
+    def save(self, payload: MatchEntryLink) -> MatchEntryLink:
         ...
 
 
@@ -250,3 +276,5 @@ class AMatchRepository(ABC):
     def save(self, payload: Match) -> Match:
         ...
 
+    def delete(self, id: UUID) -> None:
+        ...
