@@ -39,8 +39,10 @@ def close_entries(db: Session, entries: List[EntryEntity], closed_at=None) -> No
         update_entry(db, e)
     
 
-def query_match(db: Session, is_linked_entries: bool=False) -> List[Match]:
-    matches = MatchRepository(db).find_by_query(MatchQuery())
+def query_match(db: Session, **query) -> List[Match]:
+    is_linked_entries = query.get("is_linked_entries")
+    is_committed = query.get("is_committed")
+    matches = MatchRepository(db).find_by_query(MatchQuery(is_committed))
     if is_linked_entries:
         new_matches = []
         for match in matches:
@@ -96,7 +98,7 @@ def make_match_from_store(db: Session) -> List[Match]:
 class MatchEntryEmptyError(Exception):
     pass
 
-def commit_match(db: Session, match_id: UUID) -> Optional[Match]:
+def commit_match(db: Session, match_id: UUID) -> Match:
     committed_at = datetime.now()
 
     match = MatchRepository(db).find_by_id(match_id)
@@ -105,13 +107,29 @@ def commit_match(db: Session, match_id: UUID) -> Optional[Match]:
 
     entry_links = MatchEntryLinkRepository(db).find_by_match_id(match_id)
     if not entry_links.entry_ids:
-        MatchRepository(db).delete(match_id)
+        match.closed_at = datetime.now()
+        MatchRepository(db).update(match)
         return Match(match_id, [])
     
     entries = EntryRepository(db).find_by_query(EntryQuery(ids=entry_links.entry_ids))
     close_entries(db, entries, committed_at)
 
     return match
+
+def rollback_match(db: Session, match_id: UUID) -> Match:
+    match = MatchRepository(db).find_by_query(MatchQuery(id=match_id, is_committed=True))
+    if match:
+        entry_links = MatchEntryLinkRepository(db).find_by_match_id(match_id)
+        entries = EntryRepository(db).find_by_query(EntryQuery(ids=entry_links.entry_ids))
+        for entry in entries:
+            entry.closed_at = None
+            update_entry(db, entries)
+
+        match = match[0]
+        match.closed_at = None
+        MatchRepository(db).update(match_id)
+
+    return fetch_match(db, match_id)
 
 
 def make_match_proto(db: Session, entries: List[Entry]) -> Match:

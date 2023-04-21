@@ -145,6 +145,10 @@ def commit_match(id: str, db: Session = Depends(get_db)) -> Match:
     m: domain.Match = matching.commit_match(db, UUID(id))
     return Match.from_model(m)
 
+@router.post("/match_rollbacking/{id}", response_model=Match)
+def rollback_match(id: str, db: Session = Depends(get_db)):
+    matching.rollback_match(db, UUID(id))
+    return 
 
 @router.post("/match_making_with_new_entries", response_model=MatchMakingResponse, status_code=status.HTTP_201_CREATED)
 def make_match_with_new_entries(req: MatchMakingRequest, db: Session = Depends(get_db)):

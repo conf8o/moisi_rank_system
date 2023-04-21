@@ -229,7 +229,8 @@ class Match:
 
 @dataclass
 class MatchQuery:
-    pass
+    id: Optional[UUID] = None
+    is_committed: Optional[bool] = False
 
 @dataclass
 class EntryQuery:

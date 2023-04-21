@@ -107,7 +107,7 @@ class EntryRepository(domain.AEntryRepository):
     def find_by_query(self, query: domain.EntryQuery) -> List[domain.EntryEntity]:
         sql = self.db.query(Entry)
         if not query.is_closed:
-            sql = sql.filter(Entry.closed_at==None)
+            sql = sql.filter(Entry.closed_at==None) 
 
         if query.ids:
             sql = sql.filter(Entry.id.in_(query.ids))
@@ -239,7 +239,15 @@ class MatchRepository(domain.AMatchRepository):
         return domain.Match(id, parties)
     
     def find_by_query(self, match_query: domain.MatchQuery) -> List[domain.Match]:
-        ms = self.db.query(Match).all()
+        q = self.db.query(Match)
+        
+        if match_query.id:
+            q = q.filter(Match.id==match_query.id)
+
+        if match_query.is_committed:
+            q = q.filter(Match.committed_at.is_not())
+
+        ms = q.all()
         if not ms:
             return []
         match_ids = [m.id for m in ms]
@@ -265,6 +273,9 @@ class MatchRepository(domain.AMatchRepository):
         m = self.db.query(Match).filter_by(id=payload.id).first()
         if payload.committed_at:
             m.committed_at = payload.committed_at
+
+        if payload.closed_at:
+            m.closed_at = payload.closed_at
         
         self.db.flush()
 
