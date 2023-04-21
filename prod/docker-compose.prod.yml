@@ -15,6 +15,7 @@ services:
     environment:
       MOISI_MATCHING_SYSTEM_DATABASE_URL: 'postgresql://db:5432?user=app_prod&password=gTGSUD8Q89NWGReP29jw'
     build: '../app'
+    command: 'uvicorn main:app --host 0.0.0.0 --port 8080'
 
 networks:
   default:

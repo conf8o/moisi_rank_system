@@ -43,7 +43,7 @@ class EntryEntity(BaseModel):
     closed_at: Optional[datetime]
 
     def to_model(self) -> domain.EntryEntity:
-        return domain.EntryEntity(self.id, [p.to_model() for p in self.players], self.closed_at)
+        return domain.EntryEntity(UUID(self.id), [p.to_model() for p in self.players], self.closed_at)
     
     @staticmethod
     def from_model(entry: domain.EntryEntity) -> 'EntryEntity':
@@ -96,13 +96,13 @@ def index():
 
 
 @router.post("/entries", response_model=Entry, status_code=status.HTTP_201_CREATED)
-def create_entry(req: Entry, db: Session = Depends(get_db)) -> Entry:
+def create_entry(req: Entry, db: Session = Depends(get_db)) -> EntryEntity:
     entry: domain.EntryEntity = matching.create_entry(db, req.to_model())
     return EntryEntity.from_model(entry)
 
 
 @router.get("/entries")
-def query_entry(is_closed: bool = False, has_players: bool = True, db: Session = Depends(get_db)) -> List[Entry]:
+def query_entry(is_closed: bool = False, has_players: bool = True, db: Session = Depends(get_db)) -> List[EntryEntity]:
     entries = matching.query_entry(db, domain.EntryQuery(is_closed=is_closed, has_players=has_players))
     return [EntryEntity.from_model(e) for e in entries]
 
@@ -114,36 +114,45 @@ def update_entry(id: str, entry: EntryEntity, db: Session = Depends(get_db)) -> 
     matching.update_entry(db, e)
     return 
 
+@router.delete("/entries/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_entry(id: str, db: Session = Depends(get_db)) -> None:
+    matching.delete_entry(db, UUID(id))
+    return
 
-@router.get("/matches")
-def query_matching(db: Session = Depends(get_db)) -> List[Match]:
-    return [Match.from_model(m) for m in matching.query_match(db)]
+@router.delete("/players/{id}/entry", status_code=status.HTTP_204_NO_CONTENT)
+def cancel_entry(player_id: str, db: Session = Depends(get_db)) -> None:
+    matching.cancel_entry(db, UUID(player_id))
+    return
+
+@router.get("/matches", response_model=List[Match])
+def query_matching(is_linked_entries: bool=False, db: Session = Depends(get_db)) -> List[Match]:
+    return [Match.from_model(m) for m in matching.query_match(db, is_linked_entries)]
 
 
 @router.get("/matches/{id}", response_model=Match)
 def fetch_matching(id: str, db: Session = Depends(get_db)) -> Match:
-    return Match.from_model(matching.fetch_match(db, id))
+    return Match.from_model(matching.fetch_match(db, UUID(id)))
 
 
 @router.post("/match_making", response_model=MatchMakingResponse, status_code=status.HTTP_201_CREATED)
-def make_match(db: Session = Depends(get_db)):
-    m: domain.Match = matching.make_match(db)
+def make_match_from_store(db: Session = Depends(get_db)):
+    m: List[domain.Match] = matching.make_match_from_store(db)
     return MatchMakingResponse.from_model(m)
 
 
-@router.post("/match_committing", response_model=Match)
-def commit_match(match_id: str, db: Session = Depends(get_db)) -> Match:
-    m: domain.Match = matching.commit_match(db, match_id)
+@router.post("/match_committing/{id}", response_model=Match)
+def commit_match(id: str, db: Session = Depends(get_db)) -> Match:
+    m: domain.Match = matching.commit_match(db, UUID(id))
     return Match.from_model(m)
 
 
 @router.post("/match_making_with_new_entries", response_model=MatchMakingResponse, status_code=status.HTTP_201_CREATED)
 def make_match_with_new_entries(req: MatchMakingRequest, db: Session = Depends(get_db)):
-    m: domain.Match = matching.make_match_with_new_entries(db, req.to_model())
+    m: List[domain.Match] = matching.make_match_with_new_entries(db, req.to_model())
     return MatchMakingResponse.from_model(m)
 
 
 @router.post("/match_making_proto", response_model=MatchMakingResponse, status_code=status.HTTP_200_OK)
 def make_match_proto(req: MatchMakingRequest, db: Session = Depends(get_db)) -> MatchMakingResponse:
-    m: domain.Match = matching.make_match_with_new_entries(db, req.to_model())
+    m: List[domain.Match] = matching.make_match_with_new_entries(db, req.to_model())
     return MatchMakingResponse.from_model(m)

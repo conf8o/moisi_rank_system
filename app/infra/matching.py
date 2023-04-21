@@ -169,6 +169,14 @@ class EntryRepository(domain.AEntryRepository):
         self.db.flush()
 
         return self.find_by_id(entry_id)
+    
+    def delete(self, id: Uuid) -> None:
+        e = self.db.query(Entry).filter_by(id=id).first()
+        self.db.delete(e)
+
+    def delete_by_player_id(self, player_id: Uuid) -> None:
+        e = self.db.query(Entry).join(EntryPlayer).filter(EntryPlayer.player_id==player_id).first()
+        self.db.delete(e)
 
 
 def _upsert_match_entry_links(db: Session, match_entry_links: List[MatchEntryLink]) -> None:
@@ -230,11 +238,12 @@ class MatchRepository(domain.AMatchRepository):
         parties = [domain.Party(p.id, players_by_party_id[p.id]) for p in parties]
         return domain.Match(id, parties)
     
-    def find_by_query(self) -> List[domain.Match]:
+    def find_by_query(self, match_query: domain.MatchQuery) -> List[domain.Match]:
         ms = self.db.query(Match).all()
         if not ms:
             return []
         match_ids = [m.id for m in ms]
+            
 
         parties = self.db.query(Party).filter(Party.match_id.in_(match_ids)).all()
         players = self.db.query(PartyPlayer.party_id, Player) \

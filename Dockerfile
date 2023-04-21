@@ -7,5 +7,3 @@ EXPOSE 8080
 WORKDIR /app/app
 
 RUN pip install --upgrade pip && pip install -r requirements.txt
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--reload", "--port", "8080"]

@@ -227,6 +227,9 @@ class Match:
     committed_at: Optional[datetime] = None
     closed_at: Optional[datetime] = None
 
+@dataclass
+class MatchQuery:
+    pass
 
 @dataclass
 class EntryQuery:
@@ -254,6 +257,12 @@ class AEntryRepository(ABC):
     def save(self, payload: EntryEntity) -> EntryEntity:
         ...
 
+    def delete(self, id: UUID) -> None:
+        ...
+
+    def delete_by_player_id(self, player_id: UUID) -> None:
+        ...
+
 
 class AMatchEntryLinkRepository(ABC):
     def __init__(self, store) -> None:
@@ -271,6 +280,9 @@ class AMatchRepository(ABC):
         self.store = store
 
     def find_by_id(self, id: UUID) -> Match:
+        ...
+
+    def find_by_query(self, id: UUID) -> List[Match]:
         ...
 
     def save(self, payload: Match) -> Match:

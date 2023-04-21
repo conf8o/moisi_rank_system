@@ -1,6 +1,6 @@
-from domain.matching import AMatchRepository, Matching, Party, Entry, EntryEntity, Match, Player, EntryQuery, MatchEntryLink, split_entries
+from domain.matching import AMatchRepository, Matching, Party, Entry, EntryEntity, Match, MatchQuery, Player, EntryQuery, MatchEntryLink, split_entries
 from sqlalchemy.orm import Session
-from infra.matching import MatchRepository, EntryRepository, MatchEntryLinkRepository
+from infra.matching import MatchRepository, EntryRepository, MatchEntryLinkRepository, EntryPlayer
 from uuid import uuid4, UUID
 from datetime import datetime
 from typing import Optional, List
@@ -19,6 +19,12 @@ def create_entry(db: Session, entry: EntryEntity) -> EntryEntity:
 def update_entry(db: Session, entry: EntryEntity) -> EntryEntity:
     return EntryRepository(db).save(entry)
 
+def delete_entry(db: Session, id: UUID) -> None:
+    return EntryRepository(db).delete(id)
+
+def cancel_entry(db: Session, player_id: UUID) -> None:
+    return EntryRepository(db).delete_by_player_id(player_id)
+
 def _closed_entry(entry: EntryEntity, closed_at=None) -> EntryEntity:
     _entry = EntryEntity(entry.id, entry.players, entry.closed_at)
     _entry.closed_at = closed_at
@@ -31,24 +37,25 @@ def close_entries(db: Session, entries: List[EntryEntity], closed_at=None) -> No
     closed_entries = map(lambda e: _closed_entry(e, closed_at), entries)
     for e in closed_entries:
         update_entry(db, e)
+    
 
-def query_match(db: Session) -> List[Match]:
-    return MatchRepository(db).find_by_query()
+def query_match(db: Session, is_linked_entries: bool=False) -> List[Match]:
+    matches = MatchRepository(db).find_by_query(MatchQuery())
+    if is_linked_entries:
+        new_matches = []
+        for match in matches:
+            entry_links = MatchEntryLinkRepository(db).find_by_match_id(match.id)
+            if entry_links.entry_ids:
+                new_matches.append(match)
+        matches = new_matches
+    return matches
+
 
 def fetch_match(db: Session, match_id: UUID) -> Match:
     return MatchRepository(db).find_by_id(match_id)
 
-def make_match(db: Session) -> List[Match]:
-    empty_entry_query = EntryQuery(is_closed=False, has_players=False)
-    empty_entries = EntryRepository(db).find_by_query(empty_entry_query)
-    close_entries(db, empty_entries)
 
-    entry_query = EntryQuery(is_closed=False, has_players=True)
-    entry_entities = EntryRepository(db).find_by_query(entry_query)
-    if not entry_entities:
-        return []
-
-    
+def make_match(db: Session, entry_entities: List[EntryEntity]) -> List[Match]:
     splitted_entries = split_entries(entry_entities)
     
     matches = []
@@ -67,6 +74,24 @@ def make_match(db: Session) -> List[Match]:
         matches.append(match)
 
     return matches
+
+def make_match_with_new_entries(db: Session, entries: List[Entry]) -> List[Match]:
+    entry_entities = [EntryEntity(uuid4(), e.players, None) for e in entries]
+    for e in entry_entities:
+        EntryRepository(db).save(e)
+    return make_match(db, entry_entities)
+
+def make_match_from_store(db: Session) -> List[Match]:
+    empty_entry_query = EntryQuery(is_closed=False, has_players=False)
+    empty_entries = EntryRepository(db).find_by_query(empty_entry_query)
+    close_entries(db, empty_entries)
+
+    entry_query = EntryQuery(is_closed=False, has_players=True)
+    entry_entities = EntryRepository(db).find_by_query(entry_query)
+    if not entry_entities:
+        return []
+    
+    return make_match(db, entry_entities)
 
 class MatchEntryEmptyError(Exception):
     pass
@@ -87,12 +112,6 @@ def commit_match(db: Session, match_id: UUID) -> Optional[Match]:
     close_entries(db, entries, committed_at)
 
     return match
-
-def make_match_with_new_entries(db: Session, entries: List[Entry]) -> Match:
-    matching = Matching(entries)
-    parties = parties_from_entries(matching.make_match())
-    payload = Match(uuid4(), parties)
-    return MatchRepository(db).save(payload)
 
 
 def make_match_proto(db: Session, entries: List[Entry]) -> Match:
