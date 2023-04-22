@@ -31,7 +31,7 @@ services:
     volumes:
       - ./dev/web/nginx-log:/var/log/nginx
       - ./dev/web/nginx/ssl:/etc/nginx/ssl
-      - ./dev/web/html:/var/www/html
+      - ./ui/build:/var/www/html
       - ./dev/web/nginx/conf.d:/etc/nginx/conf.d
     extra_hosts:
       - "host.docker.internal:host-gateway"
