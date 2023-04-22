@@ -143,7 +143,7 @@ class SoloMatching:
 
     def make_match(self) -> List[Entry]:
         l = len(self.players)
-        if l < 3:
+        if l <= 3:
             return [Entry(self.players)]
         
         split_l = l // 3
