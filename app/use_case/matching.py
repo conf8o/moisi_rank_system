@@ -57,6 +57,11 @@ def fetch_match(db: Session, match_id: UUID) -> Match:
     return MatchRepository(db).find_by_id(match_id)
 
 
+def update_match(db: Session, payload: Match):
+    MatchRepository(db).update(payload)
+    return
+
+
 def make_match(db: Session, entry_entities: List[EntryEntity]) -> List[Match]:
     splitted_entries = split_entries(entry_entities)
     

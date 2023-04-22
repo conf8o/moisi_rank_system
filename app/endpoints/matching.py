@@ -61,11 +61,15 @@ class EntryEntity(BaseModel):
 
 
 class Party(BaseModel):
+    id: str
     players: List[Player]
 
+    def to_model(self) -> domain.Party:
+        return domain.Party(UUID(self.id), [p.to_model() for p in self.players])
+    
     @staticmethod
     def from_model(party: domain.Party) -> 'Party':
-        return Party(players=[Player.from_model(p) for p in party.players])
+        return Party(id=str(party.id), players=[Player.from_model(p) for p in party.players])
 
 
 class EntryQueryRequest(BaseModel):
@@ -113,6 +117,15 @@ class Match(BaseModel):
             created_at=created_at,
             committed_at=committed_at,
             closed_at=closed_at
+        )
+    
+    def to_model(self) -> domain.Match:
+        return domain.Match(
+            UUID(self.id),
+            [p.to_model() for p in self.parties],
+            self.created_at,
+            self.committed_at,
+            self.closed_at
         )
 
 
@@ -168,6 +181,13 @@ def fetch_matching(id: str, db: Session = Depends(get_db)) -> Match:
     return Match.from_model(matching.fetch_match(db, UUID(id)))
 
 
+@router.put("/matches/{id}")
+def update_matching(id: str, match: Match, db: Session = Depends(get_db)):
+    m = match.to_model()
+    matching.update_match(db, m)
+    return
+
+
 @router.post("/match_making", response_model=MatchMakingResponse, status_code=status.HTTP_201_CREATED)
 def make_match_from_store(db: Session = Depends(get_db)):
     m: List[domain.Match] = matching.make_match_from_store(db)
@@ -178,6 +198,7 @@ def make_match_from_store(db: Session = Depends(get_db)):
 def commit_match(id: str, db: Session = Depends(get_db)) -> Match:
     m: domain.Match = matching.commit_match(db, UUID(id))
     return Match.from_model(m)
+
 
 @router.post("/match_rollbacking/{id}")
 def rollback_match(id: str, db: Session = Depends(get_db)) -> None:

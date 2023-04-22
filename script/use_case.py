@@ -78,3 +78,5 @@ def commit_match(id):
 
 def players_to_discord_vc(match_id):
     pass
+
+make_random_entry()

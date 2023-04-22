@@ -1,3 +1,5 @@
+import { PostMatchResultButton } from "./post_match_result_button"
+
 const MatchParties = (props) => {
     const parties = props.match.parties
     return (
@@ -37,21 +39,23 @@ const MatchParties = (props) => {
 export const Match = (props) => {
     const match = props.match
     console.log(match)
-    const created_at = !match ? "" : !match.created_at ? "" : "作成日時: " + match.created_at
-    const committed_at = !match ? "" : !match.committed_at ? "" : "マッチング確定日時: " + match.committed_at
-    const closed_at = !match ? "" : !match.closed_at ? "" : "削除日時" + match.closed_at
+    const createdAt = !match ? "" : !match.created_at ? "" : "作成日時: " + match.created_at
+    const committedAt = !match ? "" : !match.committed_at ? "" : "マッチング確定日時: " + match.committed_at
+    const closedAt = !match ? "" : !match.closed_at ? "" : "削除日時: " + match.closed_at
     const id = !match ? "" : match.id
     const onClickCommit = props.onClickCommit
     const onClickRollback = props.onClickRollback
+    const onClickPostMatchResult = props.onClickPostMatchResult
+    const onClickCloseMatch = props.onClickCloseMatch
     return (
         <div>
             <h2>マッチ詳細</h2>
             { !match || Object.keys(match).length === 0 ?
                 "マッチング結果を表示するには、マッチIDをクリックしてください" :
                 <div>
-                    { !id ?
+                    { !id || closedAt ?
                         "":
-                        !committed_at ?
+                        !committedAt ?
                             <button
                                 style={{padding: "6px 12px",
                                         marginBottom: "12px"}}
@@ -70,10 +74,37 @@ export const Match = (props) => {
 
                     }
                     <p>{"ID: " + id}</p>
-                    <p>{created_at}</p>
-                    <p>{committed_at}</p>
-                    <p>{closed_at}</p>
-                    <MatchParties match={match}></MatchParties>
+                    <p>{createdAt}</p>
+                    <p>{committedAt}</p>
+                    {closedAt ?
+                        <p>{closedAt}</p>
+                        :
+                        <button
+                            style={{padding: "10px 16px",
+                                    marginBottom: "24px",
+                                    backgroundColor: "#ed1520",
+                                    color: "#F0F0F0",
+                                    borderRadius: "5px",
+                                    border: "none",
+                                    cursor: "pointer"
+                            }}
+                            onClick={() => {onClickCloseMatch(match)}}
+                        >
+                            マッチを削除する
+                        </button>}
+                    <div style={{marginBottom: "24px"}}>
+                        <MatchParties match={match}></MatchParties>
+                    </div>
+                    
+                    {closedAt ?
+                        "":
+                        <PostMatchResultButton
+                            onSubmit={() => {onClickPostMatchResult(match)}}
+                            enableTitle={"マッチング結果を発表する"}
+                            disableTitle={"マッチを確定すると発表できるようになります"}
+                            isCommitted={!!committedAt}
+                            isClosed={!!closedAt}
+                        ></PostMatchResultButton>}
                 </div>
             }
         </div>

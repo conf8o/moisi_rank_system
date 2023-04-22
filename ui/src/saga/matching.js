@@ -4,7 +4,8 @@ import {
     fetchMatch as asyncFetchMatch,
     makeMatch as asyncMakeMatch,
     commitMatch as asyncCommitMatch,
-    rollbackMatch as asyncRollbackMatch
+    rollbackMatch as asyncRollbackMatch,
+    updateMatch as asyncUpdateMatch
 } from "./interface/matching";
 
 export async function fetchMatching() {
@@ -20,6 +21,13 @@ export async function fetchMatching() {
 export async function fetchMatch(id) {
     const match = await asyncFetchMatch(id)
     return match
+}
+
+export async function closeMatch(match) {
+    const dt = new Date()
+    const isoStr = dt.toISOString()
+    match.closed_at = isoStr
+    await asyncUpdateMatch(match)
 }
 
 export async function makeMatch() {

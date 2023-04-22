@@ -279,7 +279,6 @@ class MatchRepository(domain.AMatchRepository):
         ret = []
         for m in ms:
             parties = parties_by_match_id[m.id]
-            print(">>>parties:", parties)
             model = domain.Match(m.id, parties, m.created_at, m.committed_at, m.closed_at)
             ret.append(model)
         

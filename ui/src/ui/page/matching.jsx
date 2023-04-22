@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { fetchMatching, fetchMatch, makeMatch, commitMatch, rollbackMatch } from '../../saga/matching'
+import { fetchMatching, fetchMatch, makeMatch, commitMatch, rollbackMatch, closeMatch } from '../../saga/matching'
 import { Entries } from '../organism/entries'
 import { Matches } from '../organism/matches'
 import { Match } from '../organism/match'
@@ -35,7 +35,6 @@ export const MatchingUI = () => {
             const matching = await fetchMatching()
             setEntries(matching.entries)
             setMatches(matching.matches)
-            setMatch(matching.match)
         }
     }
 
@@ -52,7 +51,7 @@ export const MatchingUI = () => {
     }
 
     const onClickRollback = async (match_id) => {
-        const result = window.confirm("マッチの確定を取り消します。OKを押すと、マッチが確定が解除され、エントリー情報がもとに戻ります。直前の確定マッチ情報だけでお願いします。それ以外でやるとバグります。すみません")
+        const result = window.confirm("マッチの確定を取り消します。OKを押すと、マッチが削除され、エントリー情報がもとに戻ります。")
 
         if (result) {
             await rollbackMatch(match_id)
@@ -60,6 +59,31 @@ export const MatchingUI = () => {
             setEntries(matching.entries)
             setMatches(matching.matches)
             setMatch({})
+        }
+    }
+
+    const onClickCloseMatch = async (match) => {
+        const result = window.confirm("マッチを削除します。消化したエントリー情報はもとに戻りません。")
+        
+        if (result) {
+            await closeMatch(match)
+            const matching = await fetchMatching()
+            setEntries(matching.entries)
+            setMatches(matching.matches)
+            const closedMatch = await fetchMatch(match.id)
+            setMatch(closedMatch)
+        }
+    }
+
+    const onClickPostMatchResult = async (match) => {
+        const result1 = window.confirm("マッチの結果をDiscordに発表します。")
+        if (result1) {
+            const matchId = match.id
+            const matchCreatedAt = match.created_at
+            const result2 = window.confirm(`以下のマッチを発表します。確認ができたらOKを押してください。\n ID: ${matchId}\n作成日時: ${matchCreatedAt}`)
+            if (result2) {
+                console.log("ok", match)
+            }
         }
     }
 
@@ -91,6 +115,8 @@ export const MatchingUI = () => {
                     match={match}
                     onClickCommit={onClickCommit}
                     onClickRollback={onClickRollback}
+                    onClickCloseMatch={onClickCloseMatch}
+                    onClickPostMatchResult={onClickPostMatchResult}
                 ></Match>      
             </Section>
         </div>

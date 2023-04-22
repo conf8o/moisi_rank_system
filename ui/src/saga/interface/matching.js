@@ -28,6 +28,17 @@ export async function fetchMatch(id) {
     return response.status === 200 ? response.json() : {}
 }
 
+export async function updateMatch(match) {
+    const response = await fetch("/matching/matches/" + match.id, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(match)
+    })
+
+    return response.status === 200 ? response.json() : {}
+}
+
+
 export async function makeMatch() {
     const response = await fetch("/matching/match_making", {
         method: "POST",
