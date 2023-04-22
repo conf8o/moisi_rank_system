@@ -107,7 +107,9 @@ class EntryRepository(domain.AEntryRepository):
     def find_by_query(self, query: domain.EntryQuery) -> List[domain.EntryEntity]:
         sql = self.db.query(Entry)
         if not query.is_closed:
-            sql = sql.filter(Entry.closed_at==None) 
+            sql = sql.filter(Entry.closed_at.is_(None))
+        else:
+            sql = sql.filter(Entry.closed_at.is_not(None))
 
         if query.ids:
             sql = sql.filter(Entry.id.in_(query.ids))
@@ -214,6 +216,12 @@ class MatchEntryLinkRepository(domain.AMatchEntryLinkRepository):
         self.db.flush()
 
         return self.find_by_match_id(match_id)
+    
+    def delete_by_match_id(self, match_id: Uuid) -> None:
+        links = self.db.query(MatchEntryLink).filter_by(match_id=match_id).all()
+        for link in links:
+            self.db.delete(link)
+        return
 
 
 class MatchRepository(domain.AMatchRepository):
@@ -236,7 +244,7 @@ class MatchRepository(domain.AMatchRepository):
             players_by_party_id[party_id].append(domain.Player(player.id, player.name, player.point))
 
         parties = [domain.Party(p.id, players_by_party_id[p.id]) for p in parties]
-        return domain.Match(id, parties)
+        return domain.Match(id, parties, m.created_at, m.committed_at, m.closed_at)
     
     def find_by_query(self, match_query: domain.MatchQuery) -> List[domain.Match]:
         q = self.db.query(Match)
@@ -245,9 +253,10 @@ class MatchRepository(domain.AMatchRepository):
             q = q.filter(Match.id==match_query.id)
 
         if match_query.is_committed:
-            q = q.filter(Match.committed_at.is_not())
+            q = q.filter(Match.committed_at.is_not(None))
 
         ms = q.all()
+        
         if not ms:
             return []
         match_ids = [m.id for m in ms]
@@ -267,15 +276,26 @@ class MatchRepository(domain.AMatchRepository):
         for p in parties:
             parties_by_match_id[p.match_id].append(domain.Party(p.id, players_by_party_id[p.id]))
 
-        return [domain.Match(match_id, parties) for match_id, parties in parties_by_match_id.items()]
+        ret = []
+        for m in ms:
+            parties = parties_by_match_id[m.id]
+            print(">>>parties:", parties)
+            model = domain.Match(m.id, parties, m.created_at, m.committed_at, m.closed_at)
+            ret.append(model)
+        
+        return ret
 
     def update(self, payload: domain.Match) -> None:
         m = self.db.query(Match).filter_by(id=payload.id).first()
         if payload.committed_at:
             m.committed_at = payload.committed_at
+        else:
+            m.committed_at = None
 
         if payload.closed_at:
             m.closed_at = payload.closed_at
+        else:
+            m.closed_at = None
         
         self.db.flush()
 

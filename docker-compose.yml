@@ -33,3 +33,5 @@ services:
       - ./dev/web/nginx/ssl:/etc/nginx/ssl
       - ./dev/web/html:/var/www/html
       - ./dev/web/nginx/conf.d:/etc/nginx/conf.d
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

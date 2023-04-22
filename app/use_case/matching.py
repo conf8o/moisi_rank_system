@@ -114,22 +114,20 @@ def commit_match(db: Session, match_id: UUID) -> Match:
     entries = EntryRepository(db).find_by_query(EntryQuery(ids=entry_links.entry_ids))
     close_entries(db, entries, committed_at)
 
-    return match
+    return MatchRepository(db).find_by_id(match_id)
 
-def rollback_match(db: Session, match_id: UUID) -> Match:
+def rollback_match(db: Session, match_id: UUID) -> None:
     match = MatchRepository(db).find_by_query(MatchQuery(id=match_id, is_committed=True))
     if match:
         entry_links = MatchEntryLinkRepository(db).find_by_match_id(match_id)
-        entries = EntryRepository(db).find_by_query(EntryQuery(ids=entry_links.entry_ids))
+        entries = EntryRepository(db).find_by_query(EntryQuery(ids=entry_links.entry_ids, is_closed=True))
         for entry in entries:
-            entry.closed_at = None
-            update_entry(db, entries)
+            payload = EntryEntity(entry.id, entry.players, closed_at=None)
+            update_entry(db, payload)
 
-        match = match[0]
-        match.closed_at = None
-        MatchRepository(db).update(match_id)
+        MatchRepository(db).delete(match_id)
 
-    return fetch_match(db, match_id)
+    return 
 
 
 def make_match_proto(db: Session, entries: List[Entry]) -> Match:

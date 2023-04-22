@@ -67,7 +67,7 @@ class Entry:
 class EntryEntity:
     id: UUID
     players: List[Player]
-    closed_at: datetime
+    closed_at: Optional[datetime]
 
     def to_value(self) -> Entry:
         return Entry(self.players)
@@ -273,6 +273,9 @@ class AMatchEntryLinkRepository(ABC):
         ...
 
     def save(self, payload: MatchEntryLink) -> MatchEntryLink:
+        ...
+
+    def delete_by_match_id(self, match_id: UUID) -> None:
         ...
 
 
