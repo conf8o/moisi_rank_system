@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { fetchMatching, fetchMatch, makeMatch, commitMatch, rollbackMatch, closeMatch } from '../../saga/matching'
+import {
+    fetchMatching,
+    fetchMatch,
+    makeMatch,
+    commitMatch,
+    rollbackMatch,
+    closeMatch,
+    postMatchResult
+} from '../../saga/matching'
 import { Entries } from '../organism/entries'
 import { Matches } from '../organism/matches'
 import { Match } from '../organism/match'
@@ -28,7 +36,7 @@ export const MatchingUI = () => {
     }
 
     const onClickMakeMatch = async () => {
-        const result = window.confirm("マッチングを開始します。OKを押すと、マッチングを行い、マッチID一覧にIDが追加されます。")
+        const result = window.confirm("マッチングを開始します。OKを押すと、マッチングを行い、マッチ一覧にマッチが追加され、IDが表示されます。")
 
         if (result) {
             await makeMatch()
@@ -82,7 +90,7 @@ export const MatchingUI = () => {
             const matchCreatedAt = match.created_at
             const result2 = window.confirm(`以下のマッチを発表します。確認ができたらOKを押してください。\n ID: ${matchId}\n作成日時: ${matchCreatedAt}`)
             if (result2) {
-                console.log("ok", match)
+                await postMatchResult(matchId)
             }
         }
     }

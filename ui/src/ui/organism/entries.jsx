@@ -31,7 +31,7 @@ export const Entries = (props) => {
                             const players = entry.players
                             return (
                                 <tr>
-                                    <td>{i}</td>
+                                    <td>{i+1}</td>
                                     { players.map( player => {
                                         return (
                                             <td style={{width: "130px"}}>

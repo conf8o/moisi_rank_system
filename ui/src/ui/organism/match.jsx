@@ -19,7 +19,7 @@ const MatchParties = (props) => {
                         const players = party.players
                         return (
                             <tr>
-                                <td>{i}</td>
+                                <td>{i+1}</td>
                                 { players.map( player => {
                                     return (
                                         <td style={{width: "130px"}}>
@@ -38,7 +38,6 @@ const MatchParties = (props) => {
 
 export const Match = (props) => {
     const match = props.match
-    console.log(match)
     const createdAt = !match ? "" : !match.created_at ? "" : "作成日時: " + match.created_at
     const committedAt = !match ? "" : !match.committed_at ? "" : "マッチング確定日時: " + match.committed_at
     const closedAt = !match ? "" : !match.closed_at ? "" : "削除日時: " + match.closed_at
@@ -92,6 +91,8 @@ export const Match = (props) => {
                         >
                             マッチを削除する
                         </button>}
+                        
+                    <h3>マッチング結果</h3>
                     <div style={{marginBottom: "24px"}}>
                         <MatchParties match={match}></MatchParties>
                     </div>

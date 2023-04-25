@@ -65,3 +65,12 @@ export async function rollbackMatch(id) {
 
     return response.status === 200 ? response.json() : {}
 }
+
+export async function postMatchResult(match_id) {
+    const response = await fetch("/matching/posting_matching_result/" + match_id, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"}
+    })
+
+    return response.status === 200 ? response.json() : {}
+}

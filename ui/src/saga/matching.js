@@ -5,7 +5,8 @@ import {
     makeMatch as asyncMakeMatch,
     commitMatch as asyncCommitMatch,
     rollbackMatch as asyncRollbackMatch,
-    updateMatch as asyncUpdateMatch
+    updateMatch as asyncUpdateMatch,
+    postMatchResult as asyncPostMatchResult
 } from "./interface/matching";
 
 export async function fetchMatching() {
@@ -43,4 +44,9 @@ export async function commitMatch(id) {
 export async function rollbackMatch(id) {
     const match = await asyncRollbackMatch(id)
     return match
+}
+
+export async function postMatchResult(match_id) {
+    const res = await asyncPostMatchResult(match_id)
+    return res
 }

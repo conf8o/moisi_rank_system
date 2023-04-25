@@ -16,8 +16,7 @@ class Mock:
 
 def hook_v1_matching(json_params: Dict[str, Any]) -> Dict[str, Any]:
     url = URL_PREFIX + "/hook/v1/matching"
-    # res = requests.post(url, json=json_params)
-    res = Mock(200, json_params)
+    res = requests.post(url, json=json_params)
     return {
         "status_code": res.status_code,
         "content": res.json()
