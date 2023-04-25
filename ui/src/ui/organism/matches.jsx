@@ -15,7 +15,7 @@ export const Matches = (props) => {
                 id="showClosed"
                 onClick={() => setShowClosed(!showClosed)}
             />
-            <label for="showClosed"> 削除したマッチを表示する </label>
+            <label htmlFor="showClosed"> 削除したマッチを表示する </label>
             <ul>
                 { !matches || matches.length === 0 ?
                     "まだ登録されていません（またはロード中）":
