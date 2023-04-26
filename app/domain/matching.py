@@ -181,8 +181,9 @@ class Matching:
 
         trios = list(filter(Entry.is_trio, duo_matching_results))
         rest_solos = list(filter(Entry.is_solo, duo_matching_results))
+        duos = list(filter(Entry.is_duo, duo_matching_results))
 
-        matchings = self.trios + trios
+        matchings = self.trios + trios + duos
         if not rest_solos:
             return matchings
         else:
