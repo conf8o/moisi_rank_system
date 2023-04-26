@@ -3,7 +3,7 @@ import json
 from typing import Dict, Any
 from dataclasses import dataclass
 
-URL_PREFIX = "http://localhost:8831"
+URL_PREFIX = "http://host.docker.internal:8831"
 
 @dataclass
 class Mock:

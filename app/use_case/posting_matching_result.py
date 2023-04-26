@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 def _player_to_json(player: Player) -> Dict[str, Any]:
     return {
-        "id": player.id,
+        "id": str(player.id),
         "name": player.name,
         "point": player.point
     }
@@ -22,7 +22,7 @@ def _party_to_json(party: Party) -> Dict[str, Any]:
 
 def _match_to_json(match: Match) -> Dict[str, Any]:
     return {
-        "id": match.id,
+        "id": str(match.id),
         "parties": [_party_to_json(p) for p in match.parties]
     }
 
